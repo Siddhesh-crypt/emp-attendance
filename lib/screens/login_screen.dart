@@ -1,6 +1,7 @@
 import 'package:emp_attendance/screens/attendance_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:mysql1/mysql1.dart';
+import '../services/db_connection.dart';
 import 'employee_registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,51 +12,31 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  // Replace these with your MySQL database credentials
-  final String _host = 'localhost';
-  final int _port = 3306;
-  final String _user = 'root';
-  final String _password = '';
-  final String _db = 'attendance_db';
+  String _role = 'employee';
 
   Future<void> _login() async {
-    try {
-      // Create a connection
-      final conn = await MySqlConnection.connect(ConnectionSettings(
-        host: _host,
-        port: _port,
-        user: _user,
-        password: _password,
-        db: _db,
-      ));
+    var conn = await DatabaseConnection.getConnection();
+    var results = await conn.query(
+      'SELECT * FROM users WHERE username = ? AND password = MD5(?)',
+      [_usernameController.text, _passwordController.text],
+    );
 
-      // Query to check if the user exists and the password matches
-      var result = await conn.query(
-          'SELECT * FROM employees WHERE name = ? AND password = ?',
-          [_usernameController.text, _passwordController.text]);
+    if (results.isNotEmpty) {
+      var user = results.first;
+      var role = user['role'];
 
-      if (result.isNotEmpty) {
-        // If user is found, navigate to the AttendanceScreen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (BuildContext context) => AttendanceScreen()),
-        );
-      } else {
-        // If user is not found, show an error message
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Invalid username or password'),
-        ));
+      if (role == 'admin') {
+        // Navigate to the admin dashboard
+        Navigator.pushReplacementNamed(context, '/adminDashboard');
+      } else if (role == 'employee') {
+        // Navigate to the employee dashboard
+        Navigator.pushReplacementNamed(context, '/employeeDashboard');
       }
-
-      // Close the connection
-      await conn.close();
-    } catch (e) {
-      print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('An error occurred while logging in.'),
-      ));
+    } else {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid credentials')),
+      );
     }
   }
 
@@ -177,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       context,
                       MaterialPageRoute(
                           builder: (BuildContext context) =>
-                              EmployeeRegistrationScreen()));
+                              RegistrationScreen()));
                 },
                 child: Text(
                   'Not a member? Register',

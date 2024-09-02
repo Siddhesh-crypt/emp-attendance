@@ -2,11 +2,11 @@ import 'package:mysql1/mysql1.dart';
 
 class DBService {
   final ConnectionSettings settings = ConnectionSettings(
-    host: '192.168.1.3', // localhost can also be used
+    host: 'srv1022.hstgr.io', // localhost can also be used
     port: 3306, // Default MySQL port
-    user: 'root', // Default MySQL user
-    db: 'attendance_db',
-    password: '', // Default password is empty unless you set one
+    user: 'u777017855_attendance_db', // Default MySQL user
+    db: 'u777017855_attendance_db',
+    password: '2aiYOb*I+xE2', // Default password is empty unless you set one
   );
 
   Future<MySqlConnection> _getConnection() async {

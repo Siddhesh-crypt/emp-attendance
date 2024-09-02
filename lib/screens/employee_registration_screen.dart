@@ -1,129 +1,90 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import '../services/db_connection.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
-import '../services/db_service.dart';
 
-class EmployeeRegistrationScreen extends StatefulWidget {
+class RegistrationScreen extends StatefulWidget {
   @override
-  _EmployeeRegistrationScreenState createState() => _EmployeeRegistrationScreenState();
+  _RegistrationScreenState createState() => _RegistrationScreenState();
 }
 
-class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen> {
-  final _nameController = TextEditingController();
+class _RegistrationScreenState extends State<RegistrationScreen> {
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
-  XFile? _image;
+  String _role = 'employee';
 
-  void _registerEmployee() async {
-    if (_nameController.text.isNotEmpty && _image != null) {
-      if (_passwordController.text == _confirmPasswordController.text) {
-        // Convert the password to MD5
-        var bytes = utf8.encode(_passwordController.text);
-        var digest = md5.convert(bytes);
+  String generateMd5(String input) {
+    return md5.convert(utf8.encode(input)).toString();
+  }
 
-        // Save the name and hashed password
-        await DBService().insertEmployee(_nameController.text, digest.toString(), _image!.path);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Employee Registered Successfully')));
-        _nameController.clear();
-        _passwordController.clear();
-        _confirmPasswordController.clear();
-        setState(() => _image = null);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Passwords do not match')));
-      }
+  Future<void> _register() async {
+    // Check if passwords match
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Passwords do not match. Please enter the correct password.')),
+      );
+      return;
     }
+
+    // Proceed with registration only if passwords match
+    var conn = await DatabaseConnection.getConnection();
+
+    // Hash the password using MD5
+    var hashedPassword = generateMd5(_passwordController.text);
+
+    // Store user in the database
+    await conn.query(
+      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+      [_usernameController.text, hashedPassword, _role],
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Registration successful')),
+    );
+
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Register Employee')),
+      appBar: AppBar(title: Text('Register')),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
-                autofocus: true,
-                autocorrect: true,
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Employee Name',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
-              ),
+            TextField(
+              controller: _usernameController,
+              decoration: InputDecoration(labelText: 'Username'),
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
-                obscureText: true,
-                autofocus: true,
-                autocorrect: true,
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
-              ),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
-                obscureText: true,
-                autofocus: true,
-                autocorrect: true,
-                controller: _confirmPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
-              ),
+            TextField(
+              controller: _confirmPasswordController,
+              decoration: InputDecoration(labelText: 'Confirm Password'),
+              obscureText: true,
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+            DropdownButton<String>(
+              value: _role,
+              onChanged: (String? newValue) {
                 setState(() {
-                  _image = pickedFile;
+                  _role = newValue!;
                 });
               },
-              child: Text('Pick Image'),
-            ),
-            SizedBox(height: 20),
-            _image != null
-                ? CircleAvatar(
-              radius: 80,
-              backgroundImage: FileImage(File(_image!.path)),
-            )
-                : CircleAvatar(
-              radius: 80,
-              backgroundColor: Colors.grey[200],
-              child: Icon(Icons.camera_alt, color: Colors.grey[600]),
+              items: ['employee', 'admin'].map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _registerEmployee,
+              onPressed: _register,
               child: Text('Register'),
             ),
           ],
