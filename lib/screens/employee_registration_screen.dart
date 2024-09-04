@@ -54,33 +54,105 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+            Center(
+              child: Image(
+                image: AssetImage('assets/dbskill_logo.png'),
+                height: 250,
+                width: 250,
+              ),
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+              child: TextField(
+
+                controller: _usernameController,
+                autofocus: true,
+                autocorrect: true,
+                decoration: InputDecoration(
+                  labelText: "Name",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                ),
+              ),
             ),
-            TextField(
-              controller: _confirmPasswordController,
-              decoration: InputDecoration(labelText: 'Confirm Password'),
-              obscureText: true,
+            SizedBox(height: 10,),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+              child: TextField(
+                controller: _passwordController,
+                autofocus: true,
+                autocorrect: true,
+                decoration: InputDecoration(
+                  labelText: "Password",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                ),
+                obscureText: true,
+              ),
             ),
-            DropdownButton<String>(
-              value: _role,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _role = newValue!;
-                });
-              },
-              items: ['employee', 'admin'].map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+            SizedBox(height: 10,),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+              child: TextField(
+                controller: _confirmPasswordController,
+                autofocus: true,
+                autocorrect: true,
+                decoration: InputDecoration(
+                  labelText: "Conform Password",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                ),
+                obscureText: true,
+              ),
+            ),
+            SizedBox(height: 10,),
+            SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 50),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text('Role:', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 10),
+                  Row(
+                    children: [
+                      Radio<String>(
+                        value: 'employee',
+                        groupValue: _role,
+                        onChanged: (String? value) {
+                          setState(() {
+                            _role = value!;
+                          });
+                        },
+                      ),
+                      Text('Employee'),
+                      SizedBox(width: 20),
+                      Radio<String>(
+                        value: 'admin',
+                        groupValue: _role,
+                        onChanged: (String? value) {
+                          setState(() {
+                            _role = value!;
+                          });
+                        },
+                      ),
+                      Text('Admin'),
+                    ],
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: 20),
             ElevatedButton(

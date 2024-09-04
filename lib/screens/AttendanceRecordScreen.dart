@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:emp_attendance/screens/employee_registration_screen.dart';
-import 'package:emp_attendance/screens/attendance_screen.dart';
+import 'package:mysql1/mysql1.dart';
+
 import '../services/db_connection.dart';
 
-class AdminDashboardScreen extends StatefulWidget {
+class AttendanceRecordScreen extends StatefulWidget {
   @override
-  _AdminDashboardScreenState createState() => _AdminDashboardScreenState();
+  _AttendanceRecordScreenState createState() => _AttendanceRecordScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AttendanceRecordScreenState extends State<AttendanceRecordScreen> {
   List<Map<String, dynamic>> _attendanceData = [];
   List<Map<String, dynamic>> _filteredData = [];
   TextEditingController _searchController = TextEditingController();
@@ -49,61 +49,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final Map arguments = ModalRoute.of(context)!.settings.arguments as Map;
-    final username = arguments['username'];
-    final userId = arguments['id'];
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Dashboard'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            UserAccountsDrawerHeader(
-              accountName: Text(username),
-              accountEmail: Text('Admin ID: $userId'),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text(
-                  username[0],
-                  style: TextStyle(fontSize: 40.0),
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.dashboard),
-              title: Text('Dashboard'),
-              onTap: () {
-                Navigator.pushReplacementNamed(
-                  context,
-                  '/admin_dashboard',
-                  arguments: {'username': username, 'id': userId},
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.app_registration),
-              title: Text('Register Employee'),
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/register',
-                  arguments: {'username': username, 'id': userId},
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/');
-              },
-            ),
-          ],
-        ),
+        title: Text('Attendance Records'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -126,14 +81,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     DataColumn(label: Text('Check-in Time')),
                     DataColumn(label: Text('Check-out Time')),
                     DataColumn(label: Text('Location')),
-
                     DataColumn(label: Text('Action')),
                   ],
                   rows: _filteredData.map((record) {
                     return DataRow(cells: [
                       DataCell(Text(record['username'])),
                       DataCell(Text(record['check_in_time'].toString())),
-                      DataCell(Text(record['check_out_time'].toString())),
+                      DataCell(Text(record['check_out_time']?.toString() ?? 'N/A')),
                       DataCell(Text(record['location'])),
                       DataCell(Text(record['action'])),
                     ]);
