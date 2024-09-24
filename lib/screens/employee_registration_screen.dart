@@ -19,7 +19,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _register() async {
-    // Check if passwords match
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Passwords do not match. Please enter the correct password.')),
@@ -27,13 +26,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
-    // Proceed with registration only if passwords match
     var conn = await DatabaseConnection.getConnection();
-
-    // Hash the password using MD5
     var hashedPassword = generateMd5(_passwordController.text);
 
-    // Store user in the database
     await conn.query(
       'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
       [_usernameController.text, hashedPassword, _role],
@@ -49,119 +44,165 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Register')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Center(
-              child: Image(
-                image: AssetImage('assets/dbskill_logo.png'),
-                height: 250,
-                width: 250,
+      backgroundColor: Color(0xFFF1F3F6), // Light grey background
+      appBar: AppBar(
+        title: Text('Register', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Color(0xFF5E60CE), // Custom AppBar color
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF5E60CE).withOpacity(0.1), // Light gradient color
+              Color(0xFF5E60CE).withOpacity(0.1), // Light gradient color
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch, // Make children take full width
+            children: [
+              Center(
+                child: Image.asset(
+                  'assets/dbskill_logo.png',
+                  height: 180,
+                  width: 180,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
-
+              SizedBox(height: 20),
+              _buildTextField(
                 controller: _usernameController,
-                autofocus: true,
-                autocorrect: true,
-                decoration: InputDecoration(
-                  labelText: "Name",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
+                labelText: 'Name',
+                icon: Icons.person,
               ),
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
+              SizedBox(height: 20),
+              _buildTextField(
                 controller: _passwordController,
-                autofocus: true,
-                autocorrect: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
+                labelText: 'Password',
+                icon: Icons.lock,
                 obscureText: true,
               ),
-            ),
-            SizedBox(height: 10,),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-              child: TextField(
+              SizedBox(height: 20),
+              _buildTextField(
                 controller: _confirmPasswordController,
-                autofocus: true,
-                autocorrect: true,
-                decoration: InputDecoration(
-                  labelText: "Conform Password",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    borderSide: BorderSide(color: Colors.transparent),
-                  ),
-                ),
+                labelText: 'Confirm Password',
+                icon: Icons.lock_outline,
                 obscureText: true,
               ),
-            ),
-            SizedBox(height: 10,),
-            SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text('Role:', style: TextStyle(fontSize: 16)),
-                  SizedBox(width: 10),
-                  Row(
-                    children: [
-                      Radio<String>(
-                        value: 'employee',
-                        groupValue: _role,
-                        onChanged: (String? value) {
-                          setState(() {
-                            _role = value!;
-                          });
-                        },
-                      ),
-                      Text('Employee'),
-                      SizedBox(width: 20),
-                      Radio<String>(
-                        value: 'admin',
-                        groupValue: _role,
-                        onChanged: (String? value) {
-                          setState(() {
-                            _role = value!;
-                          });
-                        },
-                      ),
-                      Text('Admin'),
-                    ],
+              SizedBox(height: 30),
+              _buildRoleSelector(),
+              SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF5E60CE), // Button color
+                  padding: EdgeInsets.symmetric(horizontal: 80, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                ],
+                ),
+                child: Text(
+                  'Register',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _register,
-              child: Text('Register'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData icon,
+    bool obscureText = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF5E60CE).withOpacity(0.2), // Gradient color for the text field
+              Color(0xFF5E60CE).withOpacity(0.1), // Gradient color for the text field
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: TextField(
+          controller: controller,
+          obscureText: obscureText,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: Color(0xFF5E60CE)),
+            labelText: labelText,
+            filled: true,
+            fillColor: Colors.transparent,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.all(16),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF5E60CE)),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.transparent),
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 45),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Text('Role:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          SizedBox(width: 5),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                _buildRadioOption('Employee', 'employee'),
+                SizedBox(width: 20),
+                _buildRadioOption('Admin', 'admin'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(String text, String value) {
+    return Row(
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: _role,
+          activeColor: Color(0xFF5E60CE),
+          onChanged: (String? newValue) {
+            setState(() {
+              _role = newValue!;
+            });
+          },
+        ),
+        Text(text, style: TextStyle(fontSize: 16)),
+      ],
     );
   }
 }
