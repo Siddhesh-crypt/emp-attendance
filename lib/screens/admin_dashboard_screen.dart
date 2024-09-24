@@ -60,14 +60,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         elevation: 0,
         title: Text(
           'Admin Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Color(0xFF5E60CE)),
         ),
+        centerTitle: true,
       ),
       drawer: Drawer(
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF5E60CE), Color(0xFF6E48AA)],
+              colors: [Color(0xFF6E48AA), Color(0xFF5E60CE)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -78,19 +79,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: UserAccountsDrawerHeader(
                   accountName: Text(
                     username,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  accountEmail: Text('Admin ID: $userId', style: TextStyle(fontSize: 14)),
+                  accountEmail: Text('Admin ID: $userId', style: TextStyle(fontSize: 16, color: Colors.white70)),
                   currentAccountPicture: CircleAvatar(
                     backgroundColor: Colors.white,
                     child: Text(
-                      username[0],
+                      username[0].toUpperCase(),
                       style: TextStyle(fontSize: 40.0, color: Color(0xFF5E60CE)),
                     ),
                   ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF5E60CE), Color(0xFF6E48AA)],
+                      colors: [Color(0xFF6E48AA), Color(0xFF5E60CE)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -108,7 +109,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   );
                 },
               ),
-              Divider(),
+              Divider(color: Colors.white54),
               ListTile(
                 leading: Icon(Icons.app_registration, color: Colors.white),
                 title: Text('Register Employee', style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -120,7 +121,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   );
                 },
               ),
-              Divider(),
+              Divider(color: Colors.white54),
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.white),
                 title: Text('Logout', style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -132,10 +133,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Text(
-                  "Powered by CompanyName",
+                  "Powered by DB SKILLS",
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -162,6 +163,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
+                contentPadding: EdgeInsets.symmetric(vertical: 15),
               ),
             ),
             SizedBox(height: 20),
@@ -201,7 +203,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   rows: _filteredData.map((record) {
                     return DataRow(
                       cells: [
-                        DataCell(Text(record['username'])),
+                        DataCell(Text(record['username'], style: TextStyle(color: Color(0xFF5E60CE)))),
                         DataCell(Text(record['check_in_time'].toString())),
                         DataCell(Text(record['check_out_time'].toString())),
                         DataCell(Text(record['location'])),
