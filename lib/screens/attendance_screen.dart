@@ -85,7 +85,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (_isCheckedIn) {
       await conn.query(
         'UPDATE attendance SET check_out_time = ?, image = ?, location = ? WHERE username = ? AND check_out_time IS NULL',
-        [now, imageBytes, _location, widget.username],
+        [now, imageBytes, _address, widget.username],
       );
       setState(() {
         _isCheckedIn = false;
@@ -93,7 +93,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     } else {
       await conn.query(
         'INSERT INTO attendance (username, check_in_time, image, location, action) VALUES (?, ?, ?, ?, ?)',
-        [widget.username, now, imageBytes, _location, action],
+        [widget.username, now, imageBytes, _address, action],
       );
       setState(() {
         _isCheckedIn = true;

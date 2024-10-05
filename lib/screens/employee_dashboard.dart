@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Add this import for date formatting
 import '../services/db_connection.dart';
 
 class EmployeeDashboardScreen extends StatefulWidget {
@@ -19,16 +20,32 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     for (var row in results) {
       tempData.add({
         'username': row['username'],
-        'check_in_time': row['check_in_time'],
-        'check_out_time': row['check_out_time'],
+        // Assuming row['check_in_time'] and row['check_out_time'] are already DateTime objects
+        'check_in_time': row['check_in_time'],  // Keep this as is if it's already DateTime
+        'check_out_time': row['check_out_time'], // Keep this as is if it's already DateTime
         'location': row['location'],
         'action': row['action'],
       });
     }
+
     setState(() {
       _attendanceData = tempData;
       _filteredData = tempData;
     });
+  }
+
+  String _formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) {
+      return 'N/A'; // Return a default string or any other placeholder
+    }
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
+  }
+
+  String _formatCheckOutDate(DateTime? dateTime) {
+    if (dateTime == null) {
+      return 'N/A'; // Return a default string or any other placeholder
+    }
+    return DateFormat('yyyy-MM-dd').format(dateTime) + ' 00:00:00'; // Show only date with fixed time
   }
 
   void _filterData() {
@@ -233,8 +250,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     return DataRow(
                       cells: [
                         DataCell(Text(record['username'])),
-                        DataCell(Text(record['check_in_time'].toString())),
-                        DataCell(Text(record['check_out_time'].toString())),
+                        DataCell(Text(_formatDateTime(record['check_in_time'] as DateTime?))), // Cast to DateTime
+                        DataCell(Text(_formatCheckOutDate(record['check_out_time'] as DateTime?))), // Use new method
                         DataCell(Text(record['location'])),
                         DataCell(Text(record['action'])),
                       ],

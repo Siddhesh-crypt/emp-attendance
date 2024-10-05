@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Attendance App',
+      title: 'employee Attendance App',
       initialRoute: '/',
       onGenerateRoute: (settings) {
         if (settings.name == '/attendance') {
