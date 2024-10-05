@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mysql1/mysql1.dart';
-
 import '../services/db_connection.dart';
 
 class AttendanceRecordScreen extends StatefulWidget {
@@ -66,7 +65,15 @@ class _AttendanceRecordScreenState extends State<AttendanceRecordScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.blueAccent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         centerTitle: true,
         elevation: 8.0,
         shadowColor: Colors.black54,
@@ -76,19 +83,19 @@ class _AttendanceRecordScreenState extends State<AttendanceRecordScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search bar with custom decoration and gradient effect
+            // Sexy Search bar
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                  colors: [Color(0xFFAB47BC), Color(0xFF8E24AA)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12.0),
+                borderRadius: BorderRadius.circular(20.0),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black12,
-                    blurRadius: 10.0,
+                    blurRadius: 12.0,
                     offset: Offset(0, 6),
                   ),
                 ],
@@ -99,49 +106,70 @@ class _AttendanceRecordScreenState extends State<AttendanceRecordScreen> {
                   labelText: 'Search by Name',
                   labelStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   prefixIcon: Icon(Icons.search, color: Colors.white),
-                  fillColor: Colors.transparent,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                 ),
                 style: TextStyle(color: Colors.white),
               ),
             ),
             SizedBox(height: 20),
+
+            // Data Table with modern styling
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   columnSpacing: 20,
-                  headingRowColor: MaterialStateProperty.all(Colors.blueAccent.withOpacity(0.3)),
+                  headingRowColor: MaterialStateProperty.all(Color(0xFFE1BEE7)),
                   columns: [
                     DataColumn(
                       label: Text(
                         'Name',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF6A1B9A),
+                        ),
                       ),
                     ),
                     DataColumn(
                       label: Text(
                         'Check-in Time',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF6A1B9A),
+                        ),
                       ),
                     ),
                     DataColumn(
                       label: Text(
                         'Check-out Time',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF6A1B9A),
+                        ),
                       ),
                     ),
                     DataColumn(
                       label: Text(
                         'Location',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF6A1B9A),
+                        ),
                       ),
                     ),
                     DataColumn(
                       label: Text(
                         'Action',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF6A1B9A),
+                        ),
                       ),
                     ),
                   ],
@@ -149,16 +177,57 @@ class _AttendanceRecordScreenState extends State<AttendanceRecordScreen> {
                     return DataRow(
                       color: MaterialStateProperty.resolveWith<Color?>(
                             (Set<MaterialState> states) {
-                          if (states.contains(MaterialState.selected)) return Colors.blueAccent.withOpacity(0.1);
-                          return null; // Use the default value.
+                          if (states.contains(MaterialState.selected))
+                            return Colors.purple.withOpacity(0.1);
+                          return null; // Default color
                         },
                       ),
                       cells: [
-                        DataCell(Text(record['username'], style: TextStyle(color: Colors.black87, fontSize: 14))),
-                        DataCell(Text(record['check_in_time'].toString(), style: TextStyle(color: Colors.black87, fontSize: 14))),
-                        DataCell(Text(record['check_out_time']?.toString() ?? 'N/A', style: TextStyle(color: Colors.black87, fontSize: 14))),
-                        DataCell(Text(record['location'], style: TextStyle(color: Colors.black87, fontSize: 14))),
-                        DataCell(Text(record['action'], style: TextStyle(color: Colors.black87, fontSize: 14))),
+                        DataCell(
+                          Text(
+                            record['username'],
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            record['check_in_time'].toString(),
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            record['check_out_time']?.toString() ?? 'N/A',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            record['location'],
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            record['action'],
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ],
                     );
                   }).toList(),

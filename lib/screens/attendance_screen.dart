@@ -107,6 +107,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final Map? arguments = ModalRoute.of(context)?.settings.arguments as Map?;
+    final username = arguments?['username'] ?? 'Unknown User';
+    final userId = arguments?['id'] ?? 'Unknown ID';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(

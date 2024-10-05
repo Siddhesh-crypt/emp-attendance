@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:emp_attendance/screens/attendance_screen.dart';
 import '../services/db_connection.dart';
 
 class EmployeeDashboardScreen extends StatefulWidget {
@@ -25,13 +24,10 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
         'location': row['location'],
         'action': row['action'],
       });
-      setState(() {
-        _attendanceData = tempData;
-        _filteredData = tempData;
-      });
     }
     setState(() {
       _attendanceData = tempData;
+      _filteredData = tempData;
     });
   }
 
@@ -53,16 +49,18 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final Map arguments = ModalRoute.of(context)!.settings.arguments as Map;
-    _currentUsername = arguments['username'];
-    _fetchAttendanceData();
+    final Map? arguments = ModalRoute.of(context)?.settings.arguments as Map?;
+    if (arguments != null && arguments.containsKey('username')) {
+      _currentUsername = arguments['username'];
+      _fetchAttendanceData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final Map arguments = ModalRoute.of(context)!.settings.arguments as Map;
-    final username = arguments['username'];
-    final userId = arguments['id'];
+    final Map? arguments = ModalRoute.of(context)?.settings.arguments as Map?;
+    final username = arguments?['username'] ?? 'Unknown User';
+    final userId = arguments?['id'] ?? 'Unknown ID';
 
     return Scaffold(
       appBar: AppBar(
@@ -120,7 +118,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               onTap: () {
                 Navigator.pushReplacementNamed(
                   context,
-                  '/admin_dashboard',
+                  '/employee_dashboard',
                   arguments: {'username': username, 'id': userId},
                 );
               },
@@ -135,6 +133,19 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   context,
                   '/attendance',
                   arguments: {'username': username, 'id': userId},
+                );
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout, color: Color(0xFF495057)),
+              title: Text('Contacts ', style: TextStyle(fontSize: 16)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                    context,
+                    '/contact',
+                    arguments: {'username': username, 'id': userId}
                 );
               },
             ),
@@ -159,7 +170,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
         ),
       ),
       body: Container(
-        color: Color(0xFFF1F3F5), // Light grey background for modern look
+        color: Color(0xFFF1F3F5),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [

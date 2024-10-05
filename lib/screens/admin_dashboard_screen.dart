@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:emp_attendance/screens/employee_registration_screen.dart';
-import 'package:emp_attendance/screens/attendance_screen.dart';
 import '../services/db_connection.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -122,6 +120,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
               Divider(color: Colors.white54),
+              ListTile(
+                leading: Icon(Icons.person_add, color: Colors.white,),
+                title: Text('Add Employee Details', style: TextStyle(color: Colors.white, fontSize: 16),),
+                onTap: (){
+                  Navigator.pushNamed(
+                    context,
+                    '/employee_details'
+                  );
+                },
+              ),
+              Divider(color: Colors.white54,),
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.white),
                 title: Text('Logout', style: TextStyle(color: Colors.white, fontSize: 16)),

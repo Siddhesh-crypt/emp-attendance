@@ -1,5 +1,7 @@
+import 'package:emp_attendance/screens/AddEmployeeScreen.dart';
 import 'package:emp_attendance/screens/admin_dashboard_screen.dart';
 import 'package:emp_attendance/screens/attendance_screen.dart';
+import 'package:emp_attendance/screens/contact_list_screen.dart';
 import 'package:emp_attendance/screens/employee_dashboard.dart';
 import 'package:emp_attendance/screens/login_screen.dart';
 import 'package:emp_attendance/screens/employee_registration_screen.dart';
@@ -31,6 +33,8 @@ class MyApp extends StatelessWidget {
         '/admin_dashboard': (context) => AdminDashboardScreen(),
         '/employee_dashboard': (context) => EmployeeDashboardScreen(),
         '/register': (context) => RegistrationScreen(),
+        '/contact': (context) => ContactListPage(),
+        '/employee_details': (context)=> AddEmployeeScreen(),
       },
     );
   }
