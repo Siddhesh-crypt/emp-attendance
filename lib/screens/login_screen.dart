@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/db_connection.dart';
-import 'admin_dashboard_screen.dart';
-import 'employee_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -45,6 +43,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    // Check if the username or password fields are empty
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Username and Password are required')),
+      );
+      return; // Stop further execution if validation fails
+    }
+
+    // Proceed with login only if both fields are filled
     var conn = await DatabaseConnection.getConnection();
     var results = await conn.query(
       'SELECT * FROM users WHERE username = ? AND password = MD5(?)',
@@ -102,11 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildLogoSection() {
     return Center(
-      child: Image.asset(
-        'assets/dbskill_logo.png',
-        height: 150,
-        width: 150,
-      ),
+      child: Image.asset("assets/dbskill_logo.png", height: 150, width: 150),
     );
   }
 
