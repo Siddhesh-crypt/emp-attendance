@@ -17,21 +17,22 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     final conn = await DatabaseConnection.getConnection();
     var results = await conn.query('SELECT * FROM attendance WHERE username = ?', [_currentUsername]);
     List<Map<String, dynamic>> tempData = [];
+
     for (var row in results) {
       tempData.add({
         'username': row['username'],
-        // Assuming row['check_in_time'] and row['check_out_time'] are already DateTime objects
-        'check_in_time': row['check_in_time'],  // Keep this as is if it's already DateTime
-        'check_out_time': row['check_out_time'], // Keep this as is if it's already DateTime
+        'check_in_time': row['check_in_time'], // Keep this as is if it's already DateTime
         'location': row['location'],
         'action': row['action'],
       });
     }
 
-    setState(() {
-      _attendanceData = tempData;
-      _filteredData = tempData;
-    });
+    if (mounted) {  // Check if the widget is still mounted before updating the state
+      setState(() {
+        _attendanceData = tempData;
+        _filteredData = tempData;
+      });
+    }
   }
 
   String _formatDateTime(DateTime? dateTime) {
@@ -39,13 +40,6 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
       return 'N/A'; // Return a default string or any other placeholder
     }
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
-  }
-
-  String _formatCheckOutDate(DateTime? dateTime) {
-    if (dateTime == null) {
-      return 'N/A'; // Return a default string or any other placeholder
-    }
-    return DateFormat('yyyy-MM-dd').format(dateTime) + ' 00:00:00'; // Show only date with fixed time
   }
 
   void _filterData() {
@@ -71,6 +65,13 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
       _currentUsername = arguments['username'];
       _fetchAttendanceData();
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterData); // Remove listener to avoid memory leaks
+    _searchController.dispose();  // Dispose of the controller
+    super.dispose();
   }
 
   @override
@@ -242,7 +243,6 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   columns: [
                     DataColumn(label: Text('Name')),
                     DataColumn(label: Text('Check-in Time')),
-                    DataColumn(label: Text('Check-out Time')),
                     DataColumn(label: Text('Location')),
                     DataColumn(label: Text('Action')),
                   ],
@@ -251,7 +251,6 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                       cells: [
                         DataCell(Text(record['username'])),
                         DataCell(Text(_formatDateTime(record['check_in_time'] as DateTime?))), // Cast to DateTime
-                        DataCell(Text(_formatCheckOutDate(record['check_out_time'] as DateTime?))), // Use new method
                         DataCell(Text(record['location'])),
                         DataCell(Text(record['action'])),
                       ],
@@ -266,3 +265,4 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     );
   }
 }
+
