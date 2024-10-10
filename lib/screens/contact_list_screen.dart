@@ -21,15 +21,19 @@ class _ContactListPageState extends State<ContactListPage> {
     try {
       final conn = await DatabaseConnection.getConnection();
 
-      // Fetch data from the employees table
-      var results = await conn.query('SELECT name, contact_number, designation FROM employees');
+      // Fetch data from the 'users' table where role is 'employee'
+      var results = await conn.query(
+        'SELECT username, contact_number, designation FROM users WHERE role = ?',
+        ['employee'],  // Use parameterized query to filter employees
+      );
+      // print(results);
 
       List<Map<String, String>> tempContacts = [];
       for (var row in results) {
         tempContacts.add({
-          'name': row[0],
-          'mobile': row[1],
-          'designation': row[2],
+          'name': row[0].toString(),            // Ensure 'username' is a string
+          'mobile': row[1].toString(),          // Ensure 'contact_number' is a string
+          'designation': row[2].toString(),     // Ensure 'designation' is a string
         });
       }
 

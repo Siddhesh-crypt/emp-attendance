@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/db_connection.dart';
-import 'admin_dashboard_screen.dart';
-import 'employee_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -92,6 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
             _buildInputFields(),
             SizedBox(height: 30),
             _buildLoginButton(),
+            SizedBox(height: 20),
+            _buildCreateAccountSection(),
             SizedBox(height: 20),
             _buildTestimonialsSection(),
           ],
@@ -209,6 +209,37 @@ class _LoginScreenState extends State<LoginScreen> {
           'Login',
           style: TextStyle(fontSize: 20, color: Colors.white),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCreateAccountSection() {
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Don’t have an account?',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF868E96),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // Navigate to the registration screen
+              Navigator.pushNamed(context, '/register');
+            },
+            child: Text(
+              'Create Account',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF4D5C7C),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
