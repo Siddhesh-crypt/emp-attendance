@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mysql1/mysql1.dart';
 import '../services/db_connection.dart'; // Import the DB connection file
 
 class ContactListPage extends StatefulWidget {

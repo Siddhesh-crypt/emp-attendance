@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mysql1/mysql1.dart';
 import '../services/db_connection.dart';
 
 class AttendanceRecordScreen extends StatefulWidget {

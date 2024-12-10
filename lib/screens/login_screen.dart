@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (role == 'employee') {
         Navigator.pushReplacementNamed(
           context,
-          '/employee_dashboard',
+          '/attendance',
           arguments: {'username': username, 'id': userId},
         );
       }

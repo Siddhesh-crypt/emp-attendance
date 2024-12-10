@@ -7,7 +7,7 @@ import 'package:emp_attendance/screens/login_screen.dart';
 import 'package:emp_attendance/screens/employee_registration_screen.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+Future<void> main() async {
   runApp(MyApp());
 }
 
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
           final args = settings.arguments as Map;
           return MaterialPageRoute(
             builder: (context) {
-              return AttendanceScreen(username: args['username']);
+              return AttendanceScreen(username: args['username'], userId: args['id'].toString());
             },
           );
         }

@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:csv/csv.dart';
 import '../services/db_connection.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -31,11 +35,106 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'action': row['action'],
       });
     }
+
+    // Sort the tempData by check_in_time in descending order
+    tempData.sort((a, b) {
+      DateTime checkInTimeA = a['check_in_time'];
+      DateTime checkInTimeB = b['check_in_time'];
+      return checkInTimeB.compareTo(checkInTimeA); // Sort in descending order
+    });
+
     setState(() {
       _attendanceData = tempData;
       _filteredData = tempData;
     });
   }
+
+  Future<void> _downloadCSV() async {
+    try {
+      // Request storage permissions
+      if (await Permission.storage.request().isGranted) {
+        // Fetch attendance data from the database
+        final conn = await DatabaseConnection.getConnection();
+        var results = await conn.query('SELECT * FROM attendance');
+
+        // Prepare a list of lists (rows) for CSV generation
+        List<List<dynamic>> rows = [];
+
+        // Add header row
+        rows.add([
+          'Username',
+          'Check-in Time',
+          'Check-out Time',
+          'Location',
+          'Action',
+        ]);
+
+        // Add data rows
+        for (var row in results) {
+          rows.add([
+            row['username'],
+            row['check_in_time'],
+            row['check_out_time'],
+            row['location'],
+            row['action'],
+          ]);
+        }
+
+        // Convert rows to CSV format
+        String csv = const ListToCsvConverter().convert(rows);
+
+        // Get the directory for the downloads folder
+        final directory = await getExternalStorageDirectory();
+        final downloadPath = '${directory!.path}/Download'; // Target Download folder
+        final path = '$downloadPath/attendance_data.csv';
+
+        // Write the CSV to a file
+        final File file = File(path);
+        await file.writeAsString(csv);
+
+        // Notify the user that the file has been saved
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('CSV downloaded: $path')),
+        );
+      } else {
+        // Handle permission denial
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Storage permission denied')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to download CSV: $e')),
+      );
+    }
+  }
+
+  Future<void> _saveFile() async {
+    List<List<dynamic>> rows = [];
+    rows.add(['Name', 'Check-in Time', 'Check-out Time', 'Location', 'Action']);
+
+    for (var record in _attendanceData) {
+      rows.add([
+        record['username'],
+        record['check_in_time'].toString(),
+        record['check_out_time'].toString(),
+        record['location'],
+        record['action'],
+      ]);
+    }
+
+    String csvData = const ListToCsvConverter().convert(rows);
+    final directory = await getApplicationDocumentsDirectory();  // app-specific directory
+    String filePath = '${directory.path}/attendance_data.csv';
+
+    final File file = File(filePath);
+    await file.writeAsString(csvData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Attendance data exported to $filePath'))
+    );
+  }
+
 
   void _filterData() {
     String query = _searchController.text.toLowerCase();
@@ -61,6 +160,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Color(0xFF5E60CE)),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.download),
+            onPressed: _downloadCSV,
+            tooltip: 'Download CSV',
+          ),
+        ],
       ),
       drawer: Drawer(
         child: Container(
@@ -109,25 +215,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               Divider(color: Colors.white54),
               ListTile(
-                leading: Icon(Icons.app_registration, color: Colors.white),
-                title: Text('Register Employee', style: TextStyle(color: Colors.white, fontSize: 16)),
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/register',
-                    arguments: {'username': username, 'id': userId},
-                  );
-                },
-              ),
-              Divider(color: Colors.white54),
-              ListTile(
                 leading: Icon(Icons.person_add, color: Colors.white,),
                 title: Text('Add Employee Details', style: TextStyle(color: Colors.white, fontSize: 16),),
-                onTap: (){
-                  Navigator.pushNamed(
-                    context,
-                    '/employee_details'
-                  );
+                onTap: () {
+                  Navigator.pushNamed(context, '/employee_details');
                 },
               ),
               Divider(color: Colors.white54,),
@@ -150,34 +241,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF1F3F5), Color(0xFFE0E7FF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Search by name',
-                prefixIcon: Icon(Icons.search, color: Color(0xFF5E60CE)),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 15),
-              ),
+      body: SingleChildScrollView(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF1F3F5), Color(0xFFE0E7FF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
+          ),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Search by name',
+                  prefixIcon: Icon(Icons.search, color: Color(0xFF5E60CE)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+              SizedBox(height: 20),
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingTextStyle: TextStyle(
@@ -222,8 +313,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   }).toList(),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

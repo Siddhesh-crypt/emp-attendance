@@ -1,6 +1,12 @@
+import 'dart:typed_data';  // Import for Uint8List
 import 'package:flutter/material.dart';
+import 'package:mysql1/mysql1.dart';  // Add MySQL dependency
+import 'package:csv/csv.dart';
 import 'package:intl/intl.dart'; // Add this import for date formatting
-import '../services/db_connection.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../services/db_connection.dart'; // Your custom DB connection file
+import 'dart:io';
 
 class EmployeeDashboardScreen extends StatefulWidget {
   @override
@@ -13,21 +19,65 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   late String _currentUsername;
   TextEditingController _searchController = TextEditingController();
 
+  Future<void> _downloadCSV() async {
+    try {
+      if (await Permission.storage.request().isGranted) {
+        final conn = await DatabaseConnection.getConnection();
+        var results = await conn.query('SELECT * FROM attendance');
+
+        List<List<dynamic>> rows = [];
+        rows.add([
+          'Username',
+          'Check-In Time',
+          'Check-Out Time',
+          'Check-In location',
+          'Check-Out location'
+        ]);
+
+        for (var row in results) {
+          rows.add([
+            row['username'],
+            row['check_in_time'],
+            row['check_out_time'],
+            row['check_in_location'],
+            row['check_out_location'],
+          ]);
+        }
+
+        String csv = const ListToCsvConverter().convert(rows);
+        final directory = await getExternalStorageDirectory();
+        final downloadPath = '${directory!.path}/Download';
+        final path = '$downloadPath/attendance_data.csv';
+        final File file = File(path);
+        await file.writeAsString(csv);
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV downloaded: $path')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Storage permission denied')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to download CSV: $e')));
+    }
+  }
+
   Future<void> _fetchAttendanceData() async {
     final conn = await DatabaseConnection.getConnection();
-    var results = await conn.query('SELECT * FROM attendance WHERE username = ?', [_currentUsername]);
+    var results = await conn.query('SELECT * FROM attendance WHERE username = ? ORDER BY check_in_time DESC', [_currentUsername]);
+
     List<Map<String, dynamic>> tempData = [];
 
     for (var row in results) {
       tempData.add({
         'username': row['username'],
-        'check_in_time': row['check_in_time'], // Keep this as is if it's already DateTime
-        'location': row['location'],
-        'action': row['action'],
+        'check_in_time': row['check_in_time'],
+        'check_out_time': row['check_out_time'],
+        'check_in_location': row['check_in_location'],
+        'check_out_location': row['check_out_location'],
+        'image': row['image'],  // Assuming the image data is in the 'image' column
       });
     }
 
-    if (mounted) {  // Check if the widget is still mounted before updating the state
+    if (mounted) {
       setState(() {
         _attendanceData = tempData;
         _filteredData = tempData;
@@ -37,7 +87,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
 
   String _formatDateTime(DateTime? dateTime) {
     if (dateTime == null) {
-      return 'N/A'; // Return a default string or any other placeholder
+      return ' ';
     }
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
   }
@@ -69,8 +119,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
 
   @override
   void dispose() {
-    _searchController.removeListener(_filterData); // Remove listener to avoid memory leaks
-    _searchController.dispose();  // Dispose of the controller
+    _searchController.removeListener(_filterData);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -97,6 +147,12 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
           'Employee Dashboard',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.download),
+            onPressed: _downloadCSV,
+          ),
+        ],
       ),
       drawer: Drawer(
         child: Column(
@@ -156,7 +212,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
             ),
             Divider(),
             ListTile(
-              leading: Icon(Icons.logout, color: Color(0xFF495057)),
+              leading: Icon(Icons.person, color: Color(0xFF495057)),
               title: Text('Contacts ', style: TextStyle(fontSize: 16)),
               trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
               onTap: () {
@@ -167,95 +223,70 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                 );
               },
             ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.logout, color: Color(0xFF495057)),
-              title: Text('Logout', style: TextStyle(fontSize: 16)),
-              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/');
-              },
-            ),
-            Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Text(
-                "Powered by CompanyName",
-                style: TextStyle(color: Color(0xFFADB5BD), fontSize: 12),
-              ),
-            ),
           ],
         ),
       ),
-      body: Container(
-        color: Color(0xFFF1F3F5),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    spreadRadius: 3,
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
                     blurRadius: 5,
-                    offset: Offset(0, 3),
+                    offset: Offset(0, 3), // changes position of shadow
                   ),
                 ],
+                borderRadius: BorderRadius.circular(30.0),
               ),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  labelText: 'Search by name',
-                  prefixIcon: Icon(Icons.search, color: Color(0xFF5E60CE)),
+                  labelText: 'Search by Username',
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide.none,
                   ),
+                  prefixIcon: Icon(Icons.search),
                 ),
               ),
             ),
+
             SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingTextStyle: TextStyle(
-                      fontWeight: FontWeight.bold, color: Color(0xFF495057)),
-                  dataTextStyle: TextStyle(
-                      color: Color(0xFF495057), fontWeight: FontWeight.w500),
-                  columnSpacing: 30,
-                  horizontalMargin: 10,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 3,
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  columns: [
-                    DataColumn(label: Text('Name')),
-                    DataColumn(label: Text('Check-in Time')),
-                    DataColumn(label: Text('Location')),
-                    DataColumn(label: Text('Action')),
-                  ],
-                  rows: _filteredData.map((record) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(record['username'])),
-                        DataCell(Text(_formatDateTime(record['check_in_time'] as DateTime?))), // Cast to DateTime
-                        DataCell(Text(record['location'])),
-                        DataCell(Text(record['action'])),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Container(
+
+                    child:DataTable(
+                      columnSpacing: 20,
+                      horizontalMargin: 0,
+                      columns: [
+                        DataColumn(label: Text('Username')),
+                        DataColumn(label: Text('Check-In Time')),
+                        DataColumn(label: Text('Check-Out Time')),
+                        DataColumn(label: Text('Check-In Location')),
+                        DataColumn(label: Text('Check-Out Location')),
+
                       ],
-                    );
-                  }).toList(),
+                      rows: _filteredData.map((attendance) {
+                        return DataRow(cells: [
+                          DataCell(Text(attendance['username'])),
+                          DataCell(Text(_formatDateTime(attendance['check_in_time']))),
+                          DataCell(Text(_formatDateTime(attendance['check_out_time']))),
+                          DataCell(Text(attendance['check_in_location'] ?? ' ')),
+                          DataCell(Text(attendance['check_out_location'] ?? ' ')),
+                        ]);
+                      }).toList(),
+                    ),
+                  )
                 ),
               ),
             ),
@@ -265,4 +296,3 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     );
   }
 }
-

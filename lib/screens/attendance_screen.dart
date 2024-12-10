@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mysql1/mysql1.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geocoding/geocoding.dart';
-
 import '../services/db_connection.dart';
 
 class AttendanceScreen extends StatefulWidget {
   final String username;
+  final String userId;
 
-  AttendanceScreen({required this.username});
+  AttendanceScreen({required this.username, required this.userId});
 
   @override
   _AttendanceScreenState createState() => _AttendanceScreenState();
@@ -23,18 +22,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   String _location = '';
   String _address = '';
   bool _isCheckedIn = false;
+  String _autoCheckoutMessage = '';
 
   @override
   void initState() {
     super.initState();
     _getLocation();
-    _checkInStatus(); // Check the attendance status when the app starts
+    _checkInStatus();
   }
 
   Future<void> _checkInStatus() async {
     final conn = await DatabaseConnection.getConnection();
     var results = await conn.query(
-        'SELECT check_out_time FROM attendance WHERE username = ? ORDER BY check_in_time DESC LIMIT 1',
+        'SELECT check_in_time, check_out_time FROM attendance WHERE username = ? ORDER BY check_in_time DESC LIMIT 1',
         [widget.username]);
 
     if (results.isNotEmpty) {
@@ -48,18 +48,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Future<void> _getLocation() async {
     final permission = await Permission.location.request();
     if (permission.isGranted) {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position =
+      await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      List<Placemark> placemarks =
+      await placemarkFromCoordinates(position.latitude, position.longitude);
       setState(() {
         _location = '${position.latitude}, ${position.longitude}';
+        _address = placemarks.isNotEmpty
+            ? '${placemarks[0].street}, ${placemarks[0].locality}, ${placemarks[0].administrativeArea}, ${placemarks[0].country}'
+            : 'Location unavailable';
       });
-
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (placemarks.isNotEmpty) {
-        Placemark placemark = placemarks[0];
-        setState(() {
-          _address = '${placemark.street ?? ''}, ${placemark.locality ?? ''}, ${placemark.administrativeArea ?? ''}, ${placemark.country ?? ''}';
-        });
-      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Location permission denied')),
@@ -77,45 +75,49 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _checkInOut() async {
-    final conn = await DatabaseConnection.getConnection();
-    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
-    final imageBytes = _image?.readAsBytesSync();
-    final action = _isCheckedIn ? 'check_out' : 'check_in';
-
-    if (_isCheckedIn) {
-      await conn.query(
-        'UPDATE attendance SET check_out_time = ?, image = ?, location = ? WHERE username = ? AND check_out_time IS NULL',
-        [now, imageBytes, _address, widget.username],
+    if (_image == null || _location.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please capture an image and allow location access.')),
       );
-      setState(() {
-        _isCheckedIn = false;
-      });
-    } else {
+      return;
+    }
+
+    final conn = await DatabaseConnection.getConnection();
+    final now = DateTime.now();
+
+    if (!_isCheckedIn) {
       await conn.query(
-        'INSERT INTO attendance (username, check_in_time, image, location, action) VALUES (?, ?, ?, ?, ?)',
-        [widget.username, now, imageBytes, _address, action],
+        'INSERT INTO attendance (username, check_in_time, check_in_location, image) VALUES (?, ?, ?, ?)',
+        [widget.username, DateFormat('yyyy-MM-dd HH:mm:ss').format(now), _address, _image!.path],
       );
       setState(() {
         _isCheckedIn = true;
+        _image = null;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Checked in successfully.')),
+      );
+    } else {
+      await conn.query(
+        'UPDATE attendance SET check_out_time = ?, check_out_location = ?, image = ? WHERE username = ? AND check_out_time IS NULL',
+        [DateFormat('yyyy-MM-dd HH:mm:ss').format(now), _address, _image!.path, widget.username],
+      );
+      setState(() {
+        _isCheckedIn = false;
+        _image = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Checked out successfully.')),
+      );
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('You have ${_isCheckedIn ? "checked in" : "checked out"} successfully.')),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-
-    final Map? arguments = ModalRoute.of(context)?.settings.arguments as Map?;
-    final username = arguments?['username'] ?? 'Unknown User';
-    final userId = arguments?['id'] ?? 'Unknown ID';
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Attendance System',
+          'Attendance',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         flexibleSpace: Container(
@@ -129,72 +131,140 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Profile image with fancy shadow and border
-              if (_image != null)
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.blueAccent, width: 4.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 15.0,
-                        spreadRadius: 5.0,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
+      drawer: Drawer(
+        child: Column(
+          children: [
+            Center(
+              child: UserAccountsDrawerHeader(
+                accountName: Text(widget.username, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                accountEmail: Text('Employee ID: ${widget.userId}', style: TextStyle(fontSize: 14)), // Display userId
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    widget.username[0], // Use the first letter of username
+                    style: TextStyle(fontSize: 40.0, color: Color(0xFF5E60CE)),
                   ),
-                  child: CircleAvatar(
-                    radius: 80,
-                    backgroundImage: FileImage(_image!),
-                  ),
-                )
-              else
-                CircleAvatar(
-                  radius: 80,
-                  backgroundColor: Colors.blueAccent.withOpacity(0.1),
-                  child: Icon(Icons.person, size: 60, color: Colors.blueAccent),
                 ),
-              SizedBox(height: 20),
-
-              // Info cards with rounded corners and gradient background
-              _buildInfoCard('Location', _location),
-              SizedBox(height: 10),
-              _buildInfoCard('Address', _address),
-
-              SizedBox(height: 30),
-
-              // Capture Image Button with gradient background
-              _buildActionButton(
-                text: 'Capture Image',
-                icon: Icons.camera_alt,
-                onPressed: _isCheckedIn ? null : _captureImage,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF5E60CE), Color(0xFF48BFE3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: 20),
-
-              // Check In/Out Button with modern icons and animations
-              _buildActionButton(
-                text: _isCheckedIn ? 'Check Out' : 'Check In',
-                icon: _isCheckedIn ? Icons.logout : Icons.login,
-                onPressed: _checkInOut,
+            ),
+            ListTile(
+              leading: Icon(Icons.dashboard, color: Color(0xFF495057)),
+              title: Text('Dashboard', style: TextStyle(fontSize: 16)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/employee_dashboard',
+                  arguments: {'username': widget.username, 'id': widget.userId}, // Pass userId
+                );
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.app_registration, color: Color(0xFF495057)),
+              title: Text('Attendance', style: TextStyle(fontSize: 16)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/attendance',
+                  arguments: {'username': widget.username, 'id': widget.userId}, // Pass userId
+                );
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.person, color: Color(0xFF495057)),
+              title: Text('Contacts ', style: TextStyle(fontSize: 16)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                    context,
+                    '/contact',
+                    arguments: {'username': widget.username, 'id': widget.userId} // Pass userId
+                );
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout, color: Color(0xFF495057)),
+              title: Text('Logout', style: TextStyle(fontSize: 16)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFADB5BD)),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/');
+              },
+            ),
+            Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                "Powered by DB Skills",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+      body: Container(
+
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildProfileImage(),
+                SizedBox(height: 20),
+                _buildInfoCard('Location', _location),
+                _buildInfoCard('Address', _address),
+                SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.camera_alt, color: Colors.white),
+                  label: Text('Capture Image'),
+                  onPressed: _captureImage,
+                  style: _buttonStyle(),
+                ),
+                SizedBox(height: 20),
+                _buildCheckInOutButtons(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildProfileImage() {
+    return CircleAvatar(
+      radius: 120,
+      backgroundImage: _image != null ? FileImage(_image!) : null,
+      backgroundColor: Colors.blueAccent.withOpacity(0.1),
+      child: _image == null
+          ? Icon(Icons.person, size: 80, color: Colors.blueAccent)
+          : null,
+    );
+  }
+
   Widget _buildInfoCard(String title, String info) {
     return Card(
-      elevation: 3.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+      margin: EdgeInsets.symmetric(vertical: 10),
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(1)),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -207,43 +277,46 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           leading: Icon(Icons.location_on, color: Colors.white),
           title: Text(
             title,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          subtitle: Text(
-            info.isNotEmpty ? info : 'Not available',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
+          subtitle: Text(info, style: TextStyle(color: Colors.white)),
         ),
       ),
     );
   }
 
-  Widget _buildActionButton({required String text, required IconData icon, required VoidCallback? onPressed}) {
-    return ElevatedButton.icon(
-      icon: Icon(icon, size: 24),
-      label: Text(
-        text,
-        style: TextStyle(fontSize: 18),
-      ),
-      style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.transparent,
-        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 5.0,
-        shadowColor: Colors.blueAccent.withOpacity(0.5),
-      ).copyWith(
-        side: MaterialStateProperty.all(BorderSide(color: Colors.blueAccent, width: 2)),
-        backgroundColor: MaterialStateProperty.resolveWith<Color>(
-              (Set<MaterialState> states) {
-            if (states.contains(MaterialState.disabled)) {
-              return Colors.grey;
-            }
-            return Colors.blueAccent;
-          },
+  Widget _buildCheckInOutButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton(
+          onPressed: !_isCheckedIn && _image != null ? _checkInOut : null,
+          child: Text('Check In'),
+          style: _buttonStyle(),
         ),
-      ),
-      onPressed: onPressed,
+        ElevatedButton(
+          onPressed: _isCheckedIn && _image != null ? _checkInOut : null,
+          child: Text('Check Out'),
+          style: _buttonStyle(),
+        ),
+      ],
     );
   }
+
+  ButtonStyle _buttonStyle() {
+    return ElevatedButton.styleFrom(
+      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      backgroundColor: Colors.blueAccent,
+      textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    ).copyWith(
+      foregroundColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return Colors.grey; // Text color when button is disabled
+        }
+        return Colors.white; // Text color when button is enabled
+      }),
+    );
+  }
+
 }
