@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:csv/csv.dart';
@@ -31,8 +32,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'username': row['username'],
         'check_in_time': row['check_in_time'],
         'check_out_time': row['check_out_time'],
-        'location': row['location'],
-        'action': row['action'],
+        'check_in_location': row['check_in_location'],
+        'check_out_location': row['check_out_location'],
+        'image': row['image'],
       });
     }
 
@@ -135,6 +137,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  String _formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) {
+      return ' ';
+    }
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
+  }
 
   void _filterData() {
     String query = _searchController.text.toLowerCase();
@@ -297,17 +305,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('Check-in Time', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('Check-out Time', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Check-In Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Check-Out Location', style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
                   rows: _filteredData.map((record) {
                     return DataRow(
                       cells: [
                         DataCell(Text(record['username'], style: TextStyle(color: Color(0xFF5E60CE)))),
-                        DataCell(Text(record['check_in_time'].toString())),
-                        DataCell(Text(record['check_out_time'].toString())),
-                        DataCell(Text(record['location'])),
-                        DataCell(Text(record['action'])),
+                        DataCell(Text(_formatDateTime(record['check_in_time']))),
+                        DataCell(Text(_formatDateTime(record['check_out_time']))),
+                        DataCell(Text(record['check_in_location'] ?? '')),
+                        DataCell(Text(record['check_out_location'] ?? '')),
                       ],
                     );
                   }).toList(),

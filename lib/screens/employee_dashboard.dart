@@ -1,6 +1,4 @@
-import 'dart:typed_data';  // Import for Uint8List
 import 'package:flutter/material.dart';
-import 'package:mysql1/mysql1.dart';  // Add MySQL dependency
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart'; // Add this import for date formatting
 import 'package:path_provider/path_provider.dart';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:async';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -22,13 +23,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   String _location = '';
   String _address = '';
   bool _isCheckedIn = false;
-  String _autoCheckoutMessage = '';
+  Timer? _autoCheckoutTimer;
 
   @override
   void initState() {
     super.initState();
     _getLocation();
     _checkInStatus();
+  }
+
+  @override
+  void dispose() {
+    _autoCheckoutTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkInStatus() async {
@@ -39,17 +46,63 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     if (results.isNotEmpty) {
       var row = results.first;
+      DateTime? checkInTime = row['check_in_time'];
+      DateTime? checkOutTime = row['check_out_time'];
+
       setState(() {
-        _isCheckedIn = row['check_out_time'] == null;
+        _isCheckedIn = checkOutTime == null;
       });
+
+      if (_isCheckedIn) {
+        _startAutoCheckout(checkInTime);
+      }
     }
+  }
+
+  Future<void> _startAutoCheckout(DateTime? checkInTime) async {
+    if (checkInTime == null) return;
+
+    final autoCheckoutDuration = Duration(hours: 20);
+    final now = DateTime.now();
+    final remainingTime = checkInTime.add(autoCheckoutDuration).difference(now);
+
+    if (remainingTime.isNegative) {
+      await _autoCheckout();
+    } else {
+      _autoCheckoutTimer?.cancel();
+      _autoCheckoutTimer = Timer(remainingTime, _autoCheckout);
+    }
+  }
+
+  Future<void> _autoCheckout() async {
+    if (!_isCheckedIn) return;
+
+    final conn = await DatabaseConnection.getConnection();
+    final now = DateTime.now();
+
+    await conn.query(
+      'UPDATE attendance SET check_out_time = ?, check_out_location = ? WHERE username = ? AND check_out_time IS NULL',
+      [
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(now),
+        _address.isEmpty ? "Auto-checkout: Location not available" : _address,
+        widget.username
+      ],
+    );
+
+    setState(() {
+      _isCheckedIn = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Auto-checked out due to inactivity.')),
+    );
   }
 
   Future<void> _getLocation() async {
     final permission = await Permission.location.request();
     if (permission.isGranted) {
-      Position position =
-      await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
       List<Placemark> placemarks =
       await placemarkFromCoordinates(position.latitude, position.longitude);
       setState(() {
@@ -97,6 +150,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Checked in successfully.')),
       );
+      _startAutoCheckout(now);
     } else {
       await conn.query(
         'UPDATE attendance SET check_out_time = ?, check_out_location = ?, image = ? WHERE username = ? AND check_out_time IS NULL',
@@ -220,30 +274,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ],
         ),
       ),
-      body: Container(
+      body: _buildBody(),
+    );
+  }
 
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildProfileImage(),
-                SizedBox(height: 20),
-                _buildInfoCard('Location', _location),
-                _buildInfoCard('Address', _address),
-                SizedBox(height: 20),
-                ElevatedButton.icon(
-                  icon: Icon(Icons.camera_alt, color: Colors.white),
-                  label: Text('Capture Image'),
-                  onPressed: _captureImage,
-                  style: _buttonStyle(),
-                ),
-                SizedBox(height: 20),
-                _buildCheckInOutButtons(),
-              ],
+  Widget _buildBody() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildProfileImage(),
+            SizedBox(height: 20),
+            _buildInfoCard('Location', _location),
+            _buildInfoCard('Address', _address),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: Icon(Icons.camera_alt, color: Colors.white),
+              label: Text('Capture Image'),
+              onPressed: _captureImage,
+              style: _buttonStyle(),
             ),
-          ),
+            SizedBox(height: 20),
+            _buildCheckInOutButtons(),
+          ],
         ),
       ),
     );
@@ -318,5 +373,4 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       }),
     );
   }
-
 }
