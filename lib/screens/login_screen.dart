@@ -13,11 +13,18 @@ class _LoginScreenState extends State<LoginScreen> {
   int _testimonialIndex = 0;
   PageController _pageController = PageController(initialPage: 0);
   Timer? _timer;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _startAutoScroll();
+  }
+
+  bool _isValidInput(String username, String password) {
+    final usernameRegExp = RegExp(r'^[a-zA-Z0-9._-]{3,20}$'); // Username validation
+    final passwordRegExp = RegExp(r'^[a-zA-Z0-9!@#\$%^&*()_+=-]{6,}$'); // Password validation
+    return usernameRegExp.hasMatch(username) && passwordRegExp.hasMatch(password);
   }
 
   @override
