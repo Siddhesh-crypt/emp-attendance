@@ -6,7 +6,7 @@ class DatabaseConnection {
       host: 'srv1022.hstgr.io', // e.g., 'sqlXXX.hostinger.com'
       port: 3306,
       user: 'u777017855_attendance_db',
-      password: '2aiYOb*I+xE2',
+      password: ';e;!epq/OG2S',
       db: 'u777017855_attendance_db',
     );
     return await MySqlConnection.connect(settings);
